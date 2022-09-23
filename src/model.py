@@ -126,7 +126,6 @@ class Vectorizer(BaseEstimator, TransformerMixin):
         self.vectorizer = self.vectorizer(
             tokenizer=self.tokenizer,
             analyzer="word",
-            stop_words=self.stopwords,
             **self.vectorizer_kwargs,
         )
         self.vectorizer.fit(X)
