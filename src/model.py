@@ -148,14 +148,9 @@ class SparsePCA(PCA):
             X_ = X
         return X_
 
-    def fit(self, X, y=None):
+    def fit_transform(self, X, y=None):
         X_ = self._make_dense(X)
-        super().fit(X_, y)
-
-    def transform(self, X):
-        X_ = self._make_dense(X)
-        super().transform(X_)
-
+        return self.fit(X_, y).transform(X_)
 
 class LDACluster(BaseEstimator, TransformerMixin):
     """Performs LatentDirichletAllocation on individual KMeans clusters.
