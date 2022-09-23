@@ -1,5 +1,5 @@
-import logging
-
+"""Constructors for modeling
+"""
 import nltk
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.decomposition import PCA, LatentDirichletAllocation
@@ -13,14 +13,14 @@ class Vectorizer(BaseEstimator, TransformerMixin):
     def __init__(
         self,
         vectorizer="tf-idf",
-        vectorizer_kwargs={},
-        user_stopwords={},
+        vectorizer_kwargs=None,
+        user_stopwords=None,
         language="english",
     ):
         """Constructor for pre-processing vectorization.
 
         Args:
-            vectorizer (str, optional): Choice of 'td-idf' for TfidfVectorizer, or 'counts' for CountsVectorizer. Defaults to 'tf-idf'.
+            vectorizer (str, optional): Choice of 'td-idf' or 'counts'. Defaults to 'tf-idf'.
             vectorizer_kwargs (dict, optional): Keywords fed into vectorizer. Defaults to {}.
             user_stopwords (dict, optional): User defined stopwords. Defaults to {}.
             language (str, optional): Language of underlying documents. Defaults to "english".
@@ -40,9 +40,9 @@ class Vectorizer(BaseEstimator, TransformerMixin):
             raise NotImplementedError
 
     def _construct_stopwords(self):
-        A = set(nltk.corpus.stopwords.words(self.language))
-        B = set(self.user_stopwords)
-        stopwords = A.union(B)
+        base_stopwords = set(nltk.corpus.stopwords.words(self.language))
+        user_stopwords = set(self.user_stopwords)
+        stopwords = base_stopwords.union(user_stopwords)
         stopwords_str = " ".join(stopwords)
         return self.tokenize_lemmatize(stopwords_str)
 
@@ -55,6 +55,14 @@ class Vectorizer(BaseEstimator, TransformerMixin):
         return " ".join(lemmatized)
 
     def tokenize_lemmatize(self, X):
+        """Tokenizes and lemmatizes input data.
+
+        Args:
+            X (DataFrame or str): Input data, DataFrame of strings or single string.
+
+        Returns:
+            DataFrame or str: Transformed data with same type as input.
+        """
         if isinstance(X, str):
             X_ = self._lemmatize(self._tokenize(X)).split()
         else:
@@ -69,14 +77,24 @@ class Vectorizer(BaseEstimator, TransformerMixin):
         return bow
 
     def transform(self, X):
-        try:
-            X_ = self.tokenize_lemmatize(X)
-            return self.vectorizer.transform(X_)
-        except (AttributeError, TypeError) as err:
-            logging.warning(err)
-            logging.warning("Fit before transforming.")
+        """Vectorizes input documents after fitting.
+
+        Args:
+            X (array-like): Input documents.
+
+        Returns:
+            array-like: Vectorized input documents.
+        """
+        X_ = self.tokenize_lemmatize(X)
+        return self.vectorizer.transform(X_)
 
     def fit(self, X, y=None):
+        """Processes input documents, builds a bag-of-words, then feeds to vectorizer.
+
+        Args:
+            X (array-like): Input documents
+            y (array-like, optional): Unused, kept for compatibility with base class. Defaults to None.
+        """
         X_ = self.tokenize_lemmatize(X)
         self.bow = self._build_bow(X_)
         self.vectorizer = self.vectorizer(
@@ -92,6 +110,9 @@ class Vectorizer(BaseEstimator, TransformerMixin):
 
 
 class SparsePCA(PCA):
+    """Convenience class to allow PCA to be performed on sparse data by first making it dense.
+    """
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -108,12 +129,15 @@ class SparsePCA(PCA):
 
     def transform(self, X, y=None):
         X_ = self._make_dense(X)
-        super().transform(X, y)
+        super().transform(X_, y)
 
 
 class LDACluster(BaseEstimator, TransformerMixin):
+    """Performs LatentDirichletAllocation on individual KMeans clusters.
+    """
+
     def __init__(
-        self, n_clusters, lda_kwargs={}, random_state=0,
+        self, n_clusters, lda_kwargs=None, random_state=0,
     ):
         self.n_clusters = n_clusters
         self.lda_kwargs = lda_kwargs
@@ -130,12 +154,27 @@ class LDACluster(BaseEstimator, TransformerMixin):
         return labellers
 
     def fit(self, X, y):
+        """Fits each LDA to its corresponding cluster data.
+
+        Args:
+            X (array-like, (N,M)): Input data
+            y (array-like, (N,)): K-Means cluster index for each row of X.
+        """
         for i, labeller in enumerate(self.labellers):
             X_cluster = X[y == i]
             labeller.fit(X_cluster)
         return self
 
     def transform(self, X, y):
+        """Transforms data in each KMeans cluster with its own LDA transformer.
+
+        Args:
+            X (array-like, (N,M)): Input data
+            y (array-like, (N,)): K-Means cluster index for each row of X.
+
+        Returns:
+            list: List of LDA topics for each cluster.
+        """
         vectorized_data = []
         for i, labeller in enumerate(self.labellers):
             X_cluster = X[y == i]
