@@ -1,13 +1,13 @@
-import arxivabscraper
-import pandas as pd
-import argparse
-import pathlib
-
 """Scrape the arXiv using the abstract scraper from Mahdi Sadjadi (2017)
 arxivscraper: Zenodo. http://doi.org/10.5281/zenodo.889853
 
 Usage: python scrape_arxiv.py physics:astro-ph 2012-09-01 2022-09-01 data/arxiv_abstracts.h5 data
 """
+
+import arxivabscraper
+import pandas as pd
+import argparse
+import pathlib
 
 
 def parse_args():
