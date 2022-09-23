@@ -6,6 +6,35 @@ from sklearn.decomposition import PCA, LatentDirichletAllocation
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 
 
+class Tokenizer(object):
+    """Tokenizes and lemmatizes input text while skipping stopwords.
+    """
+
+    def __init__(self, language="english"):
+        self.language = language
+
+    def tokenize(self, text):
+        return nltk.word_tokenize(text, language=self.language)
+
+    def lemmatize(self, tokens, stop_words):
+        lemmatizer = nltk.stem.WordNetLemmatizer()
+        tokens_lemmatized = []
+        for token in tokens:
+            if token in stop_words:
+                lemma = token
+            else:
+                lemma = lemmatizer.lemmatize(token)
+            tokens_lemmatized.append(lemma)
+        return tokens_lemmatized
+
+    def __call__(self, text, stop_words=None):
+        if stop_words is None:
+            stop_words = []
+
+        tokens = nltk.word_tokenize(text)
+        return self.lemmatize(tokens, stop_words)
+
+
 class Vectorizer(BaseEstimator, TransformerMixin):
     """Vectorize data after tokenizing and lemmatizing the input.
     """
@@ -29,7 +58,8 @@ class Vectorizer(BaseEstimator, TransformerMixin):
         self.vectorizer_kwargs = vectorizer_kwargs
         self.user_stopwords = user_stopwords
         self.language = language
-        self.stopwords = self._construct_stopwords()
+        self.tokenizer = Tokenizer(self.language)
+        self.stopwords = self.construct_stopwords()
         self.bow = {}
 
         if vectorizer == "tf-idf":
@@ -39,35 +69,17 @@ class Vectorizer(BaseEstimator, TransformerMixin):
         else:
             raise NotImplementedError
 
-    def _construct_stopwords(self):
+    def construct_stopwords(self):
+        """Combine user-provided stopwords with nltk stopwords, then tokenize.
+
+        Returns:
+            list: List of tokenized stopwords.
+        """
         base_stopwords = set(nltk.corpus.stopwords.words(self.language))
         user_stopwords = set(self.user_stopwords)
         stopwords = base_stopwords.union(user_stopwords)
         stopwords_str = " ".join(stopwords)
-        return self.tokenize_lemmatize(stopwords_str)
-
-    def _tokenize(self, text):
-        return nltk.word_tokenize(text, language=self.language)
-
-    def _lemmatize(self, text):
-        lemmatizer = nltk.stem.WordNetLemmatizer()
-        lemmatized = [lemmatizer.lemmatize(t) for t in text]
-        return " ".join(lemmatized)
-
-    def tokenize_lemmatize(self, X):
-        """Tokenizes and lemmatizes input data.
-
-        Args:
-            X (DataFrame or str): Input data, DataFrame of strings or single string.
-
-        Returns:
-            DataFrame or str: Transformed data with same type as input.
-        """
-        if isinstance(X, str):
-            X_ = self._lemmatize(self._tokenize(X)).split()
-        else:
-            X_ = X.apply(self._tokenize).apply(self._lemmatize)
-        return X_
+        return self.tokenizer.tokenize(stopwords_str)
 
     def _build_bow(self, X):
         bow_text = X.str.split(" ").explode().unique()
@@ -85,27 +97,23 @@ class Vectorizer(BaseEstimator, TransformerMixin):
         Returns:
             array-like: Vectorized input documents.
         """
-        X_ = self.tokenize_lemmatize(X)
-        return self.vectorizer.transform(X_)
+        return self.vectorizer.transform(X)
 
     def fit(self, X, y=None):
         """Processes input documents, builds a bag-of-words, then feeds to vectorizer.
 
         Args:
             X (array-like): Input documents
-            y (array-like, optional): Unused, kept for compatibility with base class. Defaults to None.
+            y (array-like, optional): Unused, kept for compatibility. Defaults to None.
         """
-        X_ = self.tokenize_lemmatize(X)
-        self.bow = self._build_bow(X_)
         self.vectorizer = self.vectorizer(
-            token_pattern=r"\b\w{3,}\w+\b",
+            tokenizer=self.tokenizer,
             analyzer="word",
-            lowercase=True,
             stop_words=self.stopwords,
-            vocabulary=self.bow,
             **self.vectorizer_kwargs,
         )
-        self.vectorizer.fit(X_)
+        self.vectorizer.fit(X)
+        self.bow = self.vectorizer.vocabulary_
         return self
 
 
