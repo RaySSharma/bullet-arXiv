@@ -1,5 +1,5 @@
 import nltk
-from . import model
+from . import model, abstract
 
 try:
     nltk.corpus.stopwords.words()
