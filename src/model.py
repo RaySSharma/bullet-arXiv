@@ -14,9 +14,26 @@ class Tokenizer(object):
         self.language = language
 
     def tokenize(self, text):
+        """Tokenize input text
+
+        Args:
+            text (str): String to tokenize.
+
+        Returns:
+            list: List of tokens within string.
+        """
         return nltk.word_tokenize(text, language=self.language)
 
     def lemmatize(self, tokens, stop_words):
+        """Lemmatize input, assuming it has been pre-tokenized.
+
+        Args:
+            tokens (list): List of tokens.
+            stop_words (list): List of stop words to skip lemmatizing.
+
+        Returns:
+            list: List of lemmatized tokens.
+        """
         lemmatizer = nltk.stem.WordNetLemmatizer()
         tokens_lemmatized = []
         for token in tokens:
