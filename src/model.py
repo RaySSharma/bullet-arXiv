@@ -127,9 +127,9 @@ class SparsePCA(PCA):
         X_ = self._make_dense(X)
         super().fit(X_, y)
 
-    def transform(self, X, y=None):
+    def transform(self, X):
         X_ = self._make_dense(X)
-        super().transform(X_, y)
+        super().transform(X_)
 
 
 class LDACluster(BaseEstimator, TransformerMixin):
