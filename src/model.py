@@ -66,7 +66,8 @@ class Vectorizer(BaseEstimator, TransformerMixin):
         """Constructor for pre-processing vectorization.
 
         Args:
-            vectorizer (str, optional): Choice of 'td-idf' or 'counts'. Defaults to 'tf-idf'.
+            vectorizer (str, class; optional): Choice of 'td-idf' or 'counts',
+                or user-provided vectorizer. Defaults to 'tf-idf'.
             vectorizer_kwargs (dict, optional): Keywords fed into vectorizer. Defaults to {}.
             user_stopwords (dict, optional): User defined stopwords. Defaults to {}.
             language (str, optional): Language of underlying documents. Defaults to "english".
@@ -78,13 +79,17 @@ class Vectorizer(BaseEstimator, TransformerMixin):
         self.tokenizer = Tokenizer(self.language)
         self.stopwords = self.construct_stopwords()
         self.bow = {}
+        self.estimator = None
 
-        if vectorizer == "tf-idf":
-            self.vectorizer = TfidfVectorizer
-        elif vectorizer == "counts":
-            self.vectorizer = CountVectorizer
+        if isinstance(vectorizer, str):
+            if vectorizer == "tf-idf":
+                self.vectorizer = TfidfVectorizer
+            elif vectorizer == "counts":
+                self.vectorizer = CountVectorizer
+            else:
+                raise NotImplementedError
         else:
-            raise NotImplementedError
+            self.vectorizer = vectorizer
 
     def construct_stopwords(self):
         """Combine user-provided stopwords with nltk stopwords, then tokenize.
@@ -123,13 +128,11 @@ class Vectorizer(BaseEstimator, TransformerMixin):
             X (array-like): Input documents
             y (array-like, optional): Unused, kept for compatibility. Defaults to None.
         """
-        self.vectorizer = self.vectorizer(
-            tokenizer=self.tokenizer,
-            analyzer="word",
-            **self.vectorizer_kwargs,
+        self.estimator = self.vectorizer(
+            tokenizer=self.tokenizer, analyzer="word", **self.vectorizer_kwargs,
         )
-        self.vectorizer.fit(X)
-        self.bow = self.vectorizer.vocabulary_
+        self.estimator.fit(X)
+        self.bow = self.estimator.vocabulary_
         return self
 
 
