@@ -119,7 +119,7 @@ class Vectorizer(BaseEstimator, TransformerMixin):
         Returns:
             array-like: Vectorized input documents.
         """
-        return self.vectorizer.transform(X)
+        return self.estimator.transform(X)
 
     def fit(self, X, y=None):
         """Processes input documents, builds a bag-of-words, then feeds to vectorizer.
