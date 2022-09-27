@@ -10,9 +10,34 @@ class Tokenizer(object):
     """Tokenizes and lemmatizes input text while skipping stopwords.
     """
 
-    def __init__(self, language="english"):
-        self.language = language
+    def __init__(self, user_stopwords=None, language="english"):
+        """Tokenizer constructor.
 
+        Args:
+            user_stopwords (list, optional): List of user-provided stopwords. Defaults to None.
+            language (str, optional): Corpus language. Defaults to "english".
+        """
+        if user_stopwords is None:
+            user_stopwords = []
+        
+        self.language = language
+        self.stopwords = self.construct_stopwords(user_stopwords)
+
+    def construct_stopwords(self, user_stopwords):
+        """Combine user-provided stopwords with nltk stopwords, then tokenize.
+
+        Args:
+            user_stopwords (list, optional): List of user-provided stop words. Defaults to None.
+
+        Returns:
+            list: Tokenized stopwords.
+        """
+        base_stopwords = set(nltk.corpus.stopwords.words(self.language))
+        extra_stopwords = set(user_stopwords)
+        stopwords = base_stopwords.union(extra_stopwords)
+        stopwords_str = " ".join(stopwords)
+        return self.tokenize(stopwords_str)
+        
     def tokenize(self, text):
         """Tokenize input text
 
@@ -24,12 +49,11 @@ class Tokenizer(object):
         """
         return nltk.word_tokenize(text, language=self.language)
 
-    def lemmatize(self, tokens, stop_words):
+    def lemmatize(self, tokens):
         """Lemmatize input, assuming it has been pre-tokenized.
 
         Args:
             tokens (list): List of tokens.
-            stop_words (list): List of stop words to skip lemmatizing.
 
         Returns:
             list: List of lemmatized tokens.
@@ -37,19 +61,16 @@ class Tokenizer(object):
         lemmatizer = nltk.stem.WordNetLemmatizer()
         tokens_lemmatized = []
         for token in tokens:
-            if token in stop_words:
+            if token in self.stopwords:
                 lemma = token
             else:
                 lemma = lemmatizer.lemmatize(token)
             tokens_lemmatized.append(lemma)
         return tokens_lemmatized
 
-    def __call__(self, text, stop_words=None):
-        if stop_words is None:
-            stop_words = []
-
+    def __call__(self, text):
         tokens = nltk.word_tokenize(text)
-        return self.lemmatize(tokens, stop_words)
+        return self.lemmatize(tokens)
 
 
 class Vectorizer(BaseEstimator, TransformerMixin):
@@ -150,16 +171,9 @@ class SparsePCA(PCA):
             X_ = X
         return X_
 
-    def fit(self, X, y=None):
-        X_ = self._make_dense(X)
-        return super().fit(X_, y)
-
-    def transform(self, X):
-        X_ = self._make_dense(X)
-        return super().transform(X_)
-
     def fit_transform(self, X, y=None):
-        return self.fit(X, y).transform(X)
+        X_ = self._make_dense(X)
+        return super().fit(X_, y).transform(X_)
 
 
 class LDACluster(BaseEstimator, TransformerMixin):
