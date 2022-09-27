@@ -3,7 +3,7 @@ from . import model, abstract
 
 try:
     nltk.corpus.stopwords.words()
-except OSError:
+except LookupError:
     nltk.download('stopwords')
     nltk.download('punkt')
     nltk.download('wordnet')
