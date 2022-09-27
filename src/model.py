@@ -74,7 +74,7 @@ class Tokenizer(object):
 
 
 class Vectorizer(BaseEstimator, TransformerMixin):
-    """Vectorize data after tokenizing and lemmatizing the input.
+    """Vectorize data after tokenizing and lemmatizing the input. DEPRECATED.
     """
 
     def __init__(
@@ -183,6 +183,9 @@ class LDACluster(BaseEstimator, TransformerMixin):
     def __init__(
         self, n_clusters, lda_kwargs=None, random_state=0,
     ):
+        if lda_kwargs is None:
+            lda_kwargs = {}
+
         self.n_clusters = n_clusters
         self.lda_kwargs = lda_kwargs
         self.random_state = random_state
