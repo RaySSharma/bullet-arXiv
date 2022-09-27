@@ -3,8 +3,10 @@
 import nltk
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.decomposition import PCA, LatentDirichletAllocation
+from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 
+from src.abstract import FormatText
 
 class Tokenizer(object):
     """Tokenizes and lemmatizes input text while skipping stopwords.
@@ -19,7 +21,7 @@ class Tokenizer(object):
         """
         if user_stopwords is None:
             user_stopwords = []
-        
+
         self.language = language
         self.stopwords = self.construct_stopwords(user_stopwords)
 
@@ -37,7 +39,7 @@ class Tokenizer(object):
         stopwords = base_stopwords.union(extra_stopwords)
         stopwords_str = " ".join(stopwords)
         return self.tokenize(stopwords_str)
-        
+
     def tokenize(self, text):
         """Tokenize input text
 
@@ -181,23 +183,26 @@ class LDACluster(BaseEstimator, TransformerMixin):
     """
 
     def __init__(
-        self, n_clusters, lda_kwargs=None, random_state=0,
+        self, n_clusters, vectorizer_kwargs, lda_kwargs, random_state=0,
     ):
-        if lda_kwargs is None:
-            lda_kwargs = {}
-
         self.n_clusters = n_clusters
+        self.vectorizer_kwargs = vectorizer_kwargs
         self.lda_kwargs = lda_kwargs
         self.random_state = random_state
         self.labellers = self._setup_labellers()
 
     def _setup_labellers(self):
-        labellers = [
-            LatentDirichletAllocation(
+        labellers = []
+        for _ in range(self.n_clusters):
+            formatter = FormatText()
+            vectorizer = CountVectorizer(
+                random_state=self.random_state, **self.vectorizer_kwargs
+            )
+            lda = LatentDirichletAllocation(
                 random_state=self.random_state, **self.lda_kwargs,
             )
-            for _ in range(self.n_clusters)
-        ]
+            pipeline = Pipeline([("formatter", formatter), ("vectorizer", vectorizer), ("lda", lda)])
+            labellers.append(pipeline)
         return labellers
 
     def fit(self, X, y):
