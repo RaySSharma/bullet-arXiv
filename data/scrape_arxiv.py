@@ -1,10 +1,10 @@
 """Scrape the arXiv using the abstract scraper from Mahdi Sadjadi (2017)
 arxivscraper: Zenodo. http://doi.org/10.5281/zenodo.889853
 
-Usage: python scrape_arxiv.py physics:astro-ph 2012-09-01 2022-09-01 data/arxiv_abstracts.h5 data
+Usage: python scrape_arxiv.py physics:astro-ph 2012-09-01 2022-09-01 data/arxiv_abstracts.csv
 """
 
-import arxivabscraper
+import arxivscraper
 import pandas as pd
 import argparse
 import pathlib
@@ -27,7 +27,7 @@ def parse_args():
 
 
 def scrape(category, date_from, date_until):
-    scraper = arxivabscraper.Scraper(
+    scraper = arxivscraper.Scraper(
         category=category, date_from=date_from, date_until=date_until
     )
     output = scraper.scrape()
@@ -45,7 +45,10 @@ def save(df, outfile, **kwargs):
 
 def run(category, date_from, date_until, outfile):
     output = scrape(category, date_from, date_until)
-    df = package(output, columns=["abstract"])
+    df = package(
+        output,
+        columns=("id", "title", "categories", "abstract", "doi", "created", "authors"),
+    )
     save(df, outfile)
     return df
 
