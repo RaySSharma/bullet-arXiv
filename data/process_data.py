@@ -1,4 +1,4 @@
-"""Separates data scraped by arxivabscraper, splitting into training/validation/test sets.
+"""Separates data scraped by arxivscraper, splitting into training/validation/test sets.
 """
 import pathlib
 
@@ -32,6 +32,7 @@ def train_test_val_split(x_input):
 
 if __name__ == "__main__":
     df = pd.read_csv(RAW_DATA)
+    df = df.loc[~df.doi.isna()]  # Require DOI numbers for papers.
 
     X_train, X_test, X_val = train_test_val_split(df)
 
