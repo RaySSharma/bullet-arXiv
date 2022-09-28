@@ -1,4 +1,4 @@
-"""Separates data scraped by arxivabscraper, splitting into training/validation/test sets.
+"""Separates data scraped by arxivscraper, splitting into training/validation/test sets.
 """
 import pathlib
 
