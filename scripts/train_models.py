@@ -8,6 +8,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import Normalizer
 from src.abstract import FormatText
 from src.model import Tokenizer, LDACluster
+import joblib
 
 RANDOM_STATE = 0
 
@@ -118,16 +119,14 @@ def get_cluster_labels(words_per_topic, clustering_pipeline, cluster_labeller):
 
 
 def construct_df(X, clustering_pipeline, cluster_labeller):
-    X_ = clustering_pipeline.transform(X)
-    X_tsne = tsne.transform(X_)
+    X_preprocessed = clustering_pipeline["preprocessing"].transform(X)
+    X_tsne = tsne.fit_transform(X_preprocessed)
     kmeans_labels = clustering_pipeline.predict(X)
     text = clustering_pipeline["preprocessing"]["formatter"].transform(X)
 
     df = np.asarray([X_tsne[:, 0], X_tsne[:, 1], kmeans_labels, text]).T
     df = pd.DataFrame(df, columns=["tSNE_X", "tSNE_Y", "cluster", "text"])
-    df["labels"] = lda_labels[
-        kmeans_labels.astype(int)
-    ]  # [lda_labels[int(cluster)] for cluster in kmeans_labels]
+    df["labels"] = [lda_labels[int(cluster)] for cluster in kmeans_labels]
     return df
 
 
@@ -152,7 +151,7 @@ if __name__ == "__main__":
         },
         svd_kwargs={"n_components": 100},
         kmeans_kwargs={"n_clusters": 50},
-        tsne_kwargs={"perplexity": 50, "init": "random", "learning_rate": "auto"},
+        tsne_kwargs={"perplexity": 50, "init": "pca", "learning_rate": 200},
         lda_kwargs={"n_components": 5, "learning_method": "online"},
         random_state=RANDOM_STATE,
     )
@@ -162,8 +161,11 @@ if __name__ == "__main__":
         cluster_labeller=cluster_labeller,
     )
 
-    keys = ["train", "val", "test"]
+    joblib.dump(clustering_pipeline, "clustering_pipeline.pkl")
+    joblib.dump(tsne, "tsne.pkl")
+    joblib.dump(cluster_labeller, "cluster_labeller.pkl")
 
+    keys = ["train", "val", "test"]
     for i, X in enumerate([X_train, X_val, X_test]):
         df = construct_df(X, clustering_pipeline, cluster_labeller)
         df.to_hdf("../data/processed/data.hdf5", key=keys[i])
