@@ -1,18 +1,21 @@
 """Constructors for modeling
 """
+import re
+
 import nltk
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.decomposition import PCA, LatentDirichletAllocation
-from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+from sklearn.pipeline import Pipeline
 
 from src.abstract import FormatText
+
 
 class Tokenizer(object):
     """Tokenizes and lemmatizes input text while skipping stopwords.
     """
 
-    def __init__(self, user_stopwords=None, language="english"):
+    def __init__(self, user_stopwords=None, language="english", token_pattern=r"[a-zA-Z]{3,}"):
         """Tokenizer constructor.
 
         Args:
@@ -23,6 +26,7 @@ class Tokenizer(object):
             user_stopwords = []
 
         self.language = language
+        self.token_pattern = token_pattern
         self.stopwords = self.construct_stopwords(user_stopwords)
 
     def construct_stopwords(self, user_stopwords):
@@ -71,8 +75,10 @@ class Tokenizer(object):
         return tokens_lemmatized
 
     def __call__(self, text):
-        tokens = nltk.word_tokenize(text)
-        return self.lemmatize(tokens)
+        text_ = ' '.join(re.findall(self.token_pattern, text))
+        tokens = nltk.word_tokenize(text_)
+        tokens_ = [token for token in tokens if token not in self.stopwords]
+        return self.lemmatize(tokens_)
 
 
 class Vectorizer(BaseEstimator, TransformerMixin):
@@ -195,13 +201,13 @@ class LDACluster(BaseEstimator, TransformerMixin):
         labellers = []
         for _ in range(self.n_clusters):
             formatter = FormatText()
-            vectorizer = CountVectorizer(
-                random_state=self.random_state, **self.vectorizer_kwargs
-            )
+            vectorizer = CountVectorizer(**self.vectorizer_kwargs)
             lda = LatentDirichletAllocation(
                 random_state=self.random_state, **self.lda_kwargs,
             )
-            pipeline = Pipeline([("formatter", formatter), ("vectorizer", vectorizer), ("lda", lda)])
+            pipeline = Pipeline(
+                [("formatter", formatter), ("vectorizer", vectorizer), ("lda", lda)]
+            )
             labellers.append(pipeline)
         return labellers
 
