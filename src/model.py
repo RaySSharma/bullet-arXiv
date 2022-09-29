@@ -1,13 +1,88 @@
 """Constructors for modeling
 """
+import re
+
 import nltk
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.decomposition import PCA, LatentDirichletAllocation
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+from sklearn.pipeline import Pipeline
+
+from src.abstract import FormatText
+
+
+class Tokenizer(object):
+    """Tokenizes and lemmatizes input text while skipping stopwords.
+    """
+
+    def __init__(self, user_stopwords=None, language="english", token_pattern=r"[a-zA-Z]{3,}"):
+        """Tokenizer constructor.
+
+        Args:
+            user_stopwords (list, optional): List of user-provided stopwords. Defaults to None.
+            language (str, optional): Corpus language. Defaults to "english".
+        """
+        if user_stopwords is None:
+            user_stopwords = []
+
+        self.language = language
+        self.token_pattern = token_pattern
+        self.stopwords = self.construct_stopwords(user_stopwords)
+
+    def construct_stopwords(self, user_stopwords):
+        """Combine user-provided stopwords with nltk stopwords, then tokenize.
+
+        Args:
+            user_stopwords (list, optional): List of user-provided stop words. Defaults to None.
+
+        Returns:
+            list: Tokenized stopwords.
+        """
+        base_stopwords = set(nltk.corpus.stopwords.words(self.language))
+        extra_stopwords = set(user_stopwords)
+        stopwords = base_stopwords.union(extra_stopwords)
+        stopwords_str = " ".join(stopwords)
+        return self.tokenize(stopwords_str)
+
+    def tokenize(self, text):
+        """Tokenize input text
+
+        Args:
+            text (str): String to tokenize.
+
+        Returns:
+            list: List of tokens within string.
+        """
+        return nltk.word_tokenize(text, language=self.language)
+
+    def lemmatize(self, tokens):
+        """Lemmatize input, assuming it has been pre-tokenized.
+
+        Args:
+            tokens (list): List of tokens.
+
+        Returns:
+            list: List of lemmatized tokens.
+        """
+        lemmatizer = nltk.stem.WordNetLemmatizer()
+        tokens_lemmatized = []
+        for token in tokens:
+            if token in self.stopwords:
+                lemma = token
+            else:
+                lemma = lemmatizer.lemmatize(token)
+            tokens_lemmatized.append(lemma)
+        return tokens_lemmatized
+
+    def __call__(self, text):
+        text_ = ' '.join(re.findall(self.token_pattern, text))
+        tokens = nltk.word_tokenize(text_)
+        tokens_ = [token for token in tokens if token not in self.stopwords]
+        return self.lemmatize(tokens_)
 
 
 class Vectorizer(BaseEstimator, TransformerMixin):
-    """Vectorize data after tokenizing and lemmatizing the input.
+    """Vectorize data after tokenizing and lemmatizing the input. DEPRECATED.
     """
 
     def __init__(
@@ -20,7 +95,8 @@ class Vectorizer(BaseEstimator, TransformerMixin):
         """Constructor for pre-processing vectorization.
 
         Args:
-            vectorizer (str, optional): Choice of 'td-idf' or 'counts'. Defaults to 'tf-idf'.
+            vectorizer (str, class; optional): Choice of 'td-idf' or 'counts',
+                or user-provided vectorizer. Defaults to 'tf-idf'.
             vectorizer_kwargs (dict, optional): Keywords fed into vectorizer. Defaults to {}.
             user_stopwords (dict, optional): User defined stopwords. Defaults to {}.
             language (str, optional): Language of underlying documents. Defaults to "english".
@@ -29,45 +105,32 @@ class Vectorizer(BaseEstimator, TransformerMixin):
         self.vectorizer_kwargs = vectorizer_kwargs
         self.user_stopwords = user_stopwords
         self.language = language
-        self.stopwords = self._construct_stopwords()
+        self.tokenizer = Tokenizer(self.language)
+        self.stopwords = self.construct_stopwords()
         self.bow = {}
+        self.estimator = None
 
-        if vectorizer == "tf-idf":
-            self.vectorizer = TfidfVectorizer
-        elif vectorizer == "counts":
-            self.vectorizer = CountVectorizer
+        if isinstance(vectorizer, str):
+            if vectorizer == "tf-idf":
+                self.vectorizer = TfidfVectorizer
+            elif vectorizer == "counts":
+                self.vectorizer = CountVectorizer
+            else:
+                raise NotImplementedError
         else:
-            raise NotImplementedError
+            self.vectorizer = vectorizer
 
-    def _construct_stopwords(self):
+    def construct_stopwords(self):
+        """Combine user-provided stopwords with nltk stopwords, then tokenize.
+
+        Returns:
+            list: List of tokenized stopwords.
+        """
         base_stopwords = set(nltk.corpus.stopwords.words(self.language))
         user_stopwords = set(self.user_stopwords)
         stopwords = base_stopwords.union(user_stopwords)
         stopwords_str = " ".join(stopwords)
-        return self.tokenize_lemmatize(stopwords_str)
-
-    def _tokenize(self, text):
-        return nltk.word_tokenize(text, language=self.language)
-
-    def _lemmatize(self, text):
-        lemmatizer = nltk.stem.WordNetLemmatizer()
-        lemmatized = [lemmatizer.lemmatize(t) for t in text]
-        return " ".join(lemmatized)
-
-    def tokenize_lemmatize(self, X):
-        """Tokenizes and lemmatizes input data.
-
-        Args:
-            X (DataFrame or str): Input data, DataFrame of strings or single string.
-
-        Returns:
-            DataFrame or str: Transformed data with same type as input.
-        """
-        if isinstance(X, str):
-            X_ = self._lemmatize(self._tokenize(X)).split()
-        else:
-            X_ = X.apply(self._tokenize).apply(self._lemmatize)
-        return X_
+        return self.tokenizer.tokenize(stopwords_str)
 
     def _build_bow(self, X):
         bow_text = X.str.split(" ").explode().unique()
@@ -85,27 +148,20 @@ class Vectorizer(BaseEstimator, TransformerMixin):
         Returns:
             array-like: Vectorized input documents.
         """
-        X_ = self.tokenize_lemmatize(X)
-        return self.vectorizer.transform(X_)
+        return self.estimator.transform(X)
 
     def fit(self, X, y=None):
         """Processes input documents, builds a bag-of-words, then feeds to vectorizer.
 
         Args:
             X (array-like): Input documents
-            y (array-like, optional): Unused, kept for compatibility with base class. Defaults to None.
+            y (array-like, optional): Unused, kept for compatibility. Defaults to None.
         """
-        X_ = self.tokenize_lemmatize(X)
-        self.bow = self._build_bow(X_)
-        self.vectorizer = self.vectorizer(
-            token_pattern=r"\b\w{3,}\w+\b",
-            analyzer="word",
-            lowercase=True,
-            stop_words=self.stopwords,
-            vocabulary=self.bow,
-            **self.vectorizer_kwargs,
+        self.estimator = self.vectorizer(
+            tokenizer=self.tokenizer, analyzer="word", **self.vectorizer_kwargs,
         )
-        self.vectorizer.fit(X_)
+        self.estimator.fit(X)
+        self.bow = self.estimator.vocabulary_
         return self
 
 
@@ -123,13 +179,9 @@ class SparsePCA(PCA):
             X_ = X
         return X_
 
-    def fit(self, X, y=None):
+    def fit_transform(self, X, y=None):
         X_ = self._make_dense(X)
-        super().fit(X_, y)
-
-    def transform(self, X, y=None):
-        X_ = self._make_dense(X)
-        super().transform(X_, y)
+        return super().fit(X_, y).transform(X_)
 
 
 class LDACluster(BaseEstimator, TransformerMixin):
@@ -137,20 +189,26 @@ class LDACluster(BaseEstimator, TransformerMixin):
     """
 
     def __init__(
-        self, n_clusters, lda_kwargs=None, random_state=0,
+        self, n_clusters, vectorizer_kwargs, lda_kwargs, random_state=0,
     ):
         self.n_clusters = n_clusters
+        self.vectorizer_kwargs = vectorizer_kwargs
         self.lda_kwargs = lda_kwargs
         self.random_state = random_state
         self.labellers = self._setup_labellers()
 
     def _setup_labellers(self):
-        labellers = [
-            LatentDirichletAllocation(
+        labellers = []
+        for _ in range(self.n_clusters):
+            formatter = FormatText()
+            vectorizer = CountVectorizer(**self.vectorizer_kwargs)
+            lda = LatentDirichletAllocation(
                 random_state=self.random_state, **self.lda_kwargs,
             )
-            for _ in range(self.n_clusters)
-        ]
+            pipeline = Pipeline(
+                [("formatter", formatter), ("vectorizer", vectorizer), ("lda", lda)]
+            )
+            labellers.append(pipeline)
         return labellers
 
     def fit(self, X, y):

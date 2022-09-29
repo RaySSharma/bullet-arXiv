@@ -1,10 +1,15 @@
+import pathlib
+
 import nltk
-from . import model, abstract
+
+from . import abstract, model
 
 try:
     nltk.corpus.stopwords.words()
-except OSError:
-    nltk.download('stopwords')
-    nltk.download('punkt')
-    nltk.download('wordnet')
-    nltk.download('omw-1.4')
+except LookupError:
+    nltk.download("stopwords")
+    nltk.download("punkt")
+    nltk.download("wordnet")
+    nltk.download("omw-1.4")
+
+ROOT_DIR = pathlib.Path(__file__).resolve().parent
