@@ -99,7 +99,7 @@ def fit_pipelines(
     return clustering_pipeline, tsne, cluster_labeller
 
 
-def get_cluster_labels(words_per_topic, clustering_pipeline, cluster_labeller):
+def get_cluster_labels(words_per_topic, cluster_labeller):
     def _get_lda_labels(labeller, words_per_topic):
         feature_names = labeller["vectorizer"].get_feature_names_out()
         cluster_keywords = [
@@ -118,14 +118,18 @@ def get_cluster_labels(words_per_topic, clustering_pipeline, cluster_labeller):
     return lda_labels
 
 
-def construct_df(X, clustering_pipeline, cluster_labeller):
+def construct_df(X, clustering_pipeline, tsne):
+    df = X.copy()
+
     X_preprocessed = clustering_pipeline["preprocessing"].transform(X)
     X_tsne = tsne.fit_transform(X_preprocessed)
     kmeans_labels = clustering_pipeline.predict(X)
     text = clustering_pipeline["preprocessing"]["formatter"].transform(X)
 
-    df = np.asarray([X_tsne[:, 0], X_tsne[:, 1], kmeans_labels, text]).T
-    df = pd.DataFrame(df, columns=["tSNE_X", "tSNE_Y", "cluster", "text"])
+    df["tSNE_X"] = X_tsne[:, 0]
+    df["tSNE_Y"] = X_tsne[:, 1]
+    df["cluster"] = kmeans_labels
+    df["processed_text"] = text
     df["labels"] = [lda_labels[int(cluster)] for cluster in kmeans_labels]
     return df
 
@@ -156,16 +160,13 @@ if __name__ == "__main__":
         random_state=RANDOM_STATE,
     )
     lda_labels = get_cluster_labels(
-        words_per_topic=5,
-        clustering_pipeline=clustering_pipeline,
-        cluster_labeller=cluster_labeller,
+        words_per_topic=5, cluster_labeller=cluster_labeller,
     )
 
-    joblib.dump(clustering_pipeline, "clustering_pipeline.pkl")
-    joblib.dump(tsne, "tsne.pkl")
-    joblib.dump(cluster_labeller, "cluster_labeller.pkl")
+    joblib.dump(clustering_pipeline, "data/models/clustering_pipeline.pkl")
+    joblib.dump(cluster_labeller, "data/models/cluster_labeller.pkl")
 
     keys = ["train", "val", "test"]
     for i, X in enumerate([X_train, X_val, X_test]):
-        df = construct_df(X, clustering_pipeline, cluster_labeller)
-        df.to_hdf("../data/processed/data.hdf5", key=keys[i])
+        df = construct_df(X, clustering_pipeline, tsne)
+        df.to_hdf("data/processed/data.hdf5", key=keys[i])
