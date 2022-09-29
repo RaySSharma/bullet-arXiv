@@ -12,4 +12,4 @@ except LookupError:
     nltk.download("wordnet")
     nltk.download("omw-1.4")
 
-ROOT_DIR = pathlib.Path(__file__).resolve().parent
+ROOT_DIR = pathlib.Path(__file__).resolve().parent.parent
