@@ -1,3 +1,6 @@
+import os
+
+import joblib
 import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
@@ -7,8 +10,8 @@ from sklearn.manifold import TSNE
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import Normalizer
 from src.abstract import FormatText
-from src.model import Tokenizer, LDACluster
-import joblib
+from src.model import LDACluster, Tokenizer
+from src import ROOT_DIR
 
 RANDOM_STATE = 0
 
@@ -136,9 +139,9 @@ def construct_df(X, clustering_pipeline, tsne):
 
 if __name__ == "__main__":
 
-    X_train = pd.read_csv("data/processed/train.csv")
-    X_val = pd.read_csv("data/processed/val.csv")
-    X_test = pd.read_csv("data/processed/test.csv")
+    X_train = pd.read_csv(ROOT_DIR / "data/processed/train.csv")
+    X_val = pd.read_csv(ROOT_DIR / "data/processed/val.csv")
+    X_test = pd.read_csv(ROOT_DIR / "data/processed/test.csv")
 
     tokenizer = Tokenizer(
         user_stopwords=STOP_WORDS, language="english", token_pattern=r"[a-zA-Z]{3,}"
@@ -163,10 +166,13 @@ if __name__ == "__main__":
         words_per_topic=5, cluster_labeller=cluster_labeller,
     )
 
-    joblib.dump(clustering_pipeline, "data/models/clustering_pipeline.pkl")
-    joblib.dump(cluster_labeller, "data/models/cluster_labeller.pkl")
+    if not os.path.isdir("data/models"):
+        os.path.mkdir("data/models")
+
+    joblib.dump(clustering_pipeline, ROOT_DIR / "data/models/clustering_pipeline.pkl")
+    joblib.dump(cluster_labeller, ROOT_DIR / "data/models/cluster_labeller.pkl")
 
     keys = ["train", "val", "test"]
     for i, X in enumerate([X_train, X_val, X_test]):
         df = construct_df(X, clustering_pipeline, tsne)
-        df.to_hdf("data/processed/data.hdf5", key=keys[i])
+        df.to_hdf(ROOT_DIR / "data/processed/data.hdf5", key=keys[i])

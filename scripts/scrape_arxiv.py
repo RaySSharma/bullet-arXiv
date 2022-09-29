@@ -4,10 +4,11 @@ arxivscraper: Zenodo. http://doi.org/10.5281/zenodo.889853
 Usage: python scrape_arxiv.py physics:astro-ph 2012-09-01 2022-09-01 data/arxiv_abstracts.csv
 """
 
-import arxivscraper
-import pandas as pd
 import argparse
 import pathlib
+
+import arxivscraper
+import pandas as pd
 
 
 def parse_args():
@@ -27,6 +28,16 @@ def parse_args():
 
 
 def scrape(category, date_from, date_until):
+    """Scrape data using arxivscraper between dates `date_from` and `date_until`, in category `category`.
+
+    Args:
+        category (str): ArXiv category tag.
+        date_from (str): Date in YYYY-MM-DD format.
+        date_until (str): Date in YYYY-MM-DD format.
+
+    Returns:
+        dict: Scraped data dictionary.
+    """
     scraper = arxivscraper.Scraper(
         category=category, date_from=date_from, date_until=date_until
     )
@@ -35,6 +46,15 @@ def scrape(category, date_from, date_until):
 
 
 def package(output, columns):
+    """Generated DataFrame from scraped data.
+
+    Args:
+        output (dict): Scraped data from arxivscraper.
+        columns (list): List of columns to keep from arxivscraper output.
+
+    Returns:
+        pandas.DataFrame: Packaged DataFrame.
+    """
     df = pd.DataFrame(output, columns=columns)
     return df
 
