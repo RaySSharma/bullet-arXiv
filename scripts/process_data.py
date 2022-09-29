@@ -6,8 +6,8 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 
 RANDOM_STATE = 0
-RAW_DATA = pathlib.Path("../data/raw/arxiv_abstracts.csv")
-PROC_DIR = pathlib.Path("../data/processed/")
+RAW_DATA = pathlib.Path("data/raw/arxiv_abstracts.csv")
+PROC_DIR = pathlib.Path("data/processed/")
 
 
 def train_test_val_split(x_input):
