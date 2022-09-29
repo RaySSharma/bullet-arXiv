@@ -1,3 +1,6 @@
+"""Train and save models and data products. Defines and trains full pre-processing, LSA,
+clustering, and labelling pipeline, as well as tSNE for plotting.
+"""
 import os
 
 import joblib
