@@ -2,7 +2,8 @@ import dash_core_components as dcc
 import dash_html_components as html
 import pandas as pd
 import plotly.graph_objects as go
-from dash import Dash, exceptions
+import plotly.express as px
+from dash import Dash
 from dash.dependencies import Input, Output
 
 from src import ROOT_DIR
@@ -15,189 +16,155 @@ TOTAL_NUM_CLUSTERS = DATA["cluster"].max() + 1
 
 
 def build_widgets():
-    cluster_slider = dcc.Slider(
-        value=TOTAL_NUM_CLUSTERS,
-        min=0,
-        max=TOTAL_NUM_CLUSTERS,
-        step=1,
-        tooltip={"placement": "bottom", "always_visible": True},
-        id="cluster-number",
-    )
-    slider_label = html.B(
-        children=["Cluster #: ", TOTAL_NUM_CLUSTERS], id="slider-label"
-    )
+    cluster_label = html.B(id="cluster-label",)
 
-    entry_box = dcc.Textarea(
-        value="Place your own abstract here.", id="custom-abstract"
-    )
+    scatter_plot = dcc.Graph(id="scatter-plot", clear_on_unhover=True)
 
-    scatter_plot = build_scatter_figure()
-    scatter_plot.add_traces(
-        go.Scatter(
-            x=DATA["tSNE_X"],
-            y=DATA["tSNE_Y"],
-            mode="markers",
-            marker={
-                "color": DATA["cluster"],
-                "size": 10,
-                "colorscale": "Spectral",
-                "showscale": False,
-                "cmax": TOTAL_NUM_CLUSTERS - 1,
-                "cmin": 0,
-            },
-            customdata=DATA["cluster"],
-        )
+    keywords = html.Div(
+        children=["Keywords:", html.Plaintext(children="", id="keywords")],
     )
-
-    scatter_plot = dcc.Graph(figure=scatter_plot, id="scatter-plot")
-    keywords_widgets = html.Ul(
-        children=DATA["labels"].explode().unique(), id="keywords", style={"columns": 2}
-    )
-    store = dcc.Store(id="current-cluster", data=TOTAL_NUM_CLUSTERS)
+    store1 = dcc.Store(data=TOTAL_NUM_CLUSTERS, id="current-cluster")
+    store2 = dcc.Store(data=DATA.to_json(), id="current-data")
 
     return [
-        cluster_slider,
-        slider_label,
-        entry_box,
+        cluster_label,
         scatter_plot,
-        keywords_widgets,
-        store,
+        keywords,
+        store1,
+        store2,
     ]
 
 
 def build_html(widgets):
-    (
-        cluster_slider,
-        slider_label,
-        entry_box,
-        scatter_plot,
-        keywords_widget,
-        store,
-    ) = widgets
+    (cluster_label, scatter_plot, keywords, store1, store2) = widgets
 
-    header = html.H2(children=["Clustering abstracts from arXiv:astro-ph"])
-    description = html.H3(children=["<Description>"])
-    keywords = html.Div(
-        children=["Keywords:", keywords_widget], style={"text-align": "left"}
+    header = html.H2(children=["Clustering abstracts from arXiv:astro-ph"], id="header")
+    description = html.H5(
+        children=[
+            """The rapidly increasing number of research papers published every day makes it \
+            difficult to keep track of what is relevant to your own research. Using NLP, \
+            clustering, and labelling algorithms, I try to answer the following questions: Can I \
+            cluster papers based on their abstracts, and extract meaningful keywords in an \
+            automated way?"""
+        ],
+        id="description",
+    )
+    methods = (
+        html.Div(
+            children=[html.H3("Methods"), "Methods upon methods"],
+            className="three columns",
+            id="methods",
+        ),
+    )
+    outcomes = html.Div(
+        children=[html.H3("Outcomes"), "Outcomes upon outcomes"],
+        className="three columns",
+        id="outcomes",
+    )
+    contact = html.Div(
+        children=[html.H3("Contact")], className="three columns", id="contact"
     )
 
     row1 = html.Div(
         children=[
             html.Div(
-                children=[slider_label, cluster_slider, html.Br(),],
-                className="six columns offset-by-one",
-                style={"text-align": "center", "justify-content": "center"},
+                children=[cluster_label],
+                style={"margin-left": "150px", "text-align": "center"},
+                className="six columns",
             ),
+            html.Br(),
             html.Div(
-                children=[
-                    html.Div(children=[scatter_plot], className="eight columns",),
-                    html.Div(
-                        children=[html.Br(), html.Br(), html.Br(), html.Br(), keywords],
-                        className="two columns",
-                    ),
-                ],
-                className="twelve columns",
+                children=[keywords],
+                style={
+                    "margin-left": "30px",
+                    "text-align": "left",
+                    "margin-bottom": "10px",
+                },
             ),
+            html.Div(children=[scatter_plot]),
         ],
+        className="twelve columns",
     )
-    row2 = html.Div(
-        children=[
-            html.Div(
-                children=[html.H3(["Methods"]), "Methods upon methods"],
-                className="three columns",
-                id="methods",
-            ),
-            html.Div(
-                children=[html.H3(["Outcomes"]), "Outcomes upon outcomes"],
-                className="three columns",
-                id="outcomes",
-            ),
-            html.Div(
-                children=[html.H3(["Contact"])], className="three columns", id="contact"
-            ),
-        ]
-    )
+    row2 = html.Div(children=[methods, outcomes, contact])
 
     layout = html.Div(
-        children=[header, description, row1, row2, store], className="twelve columns"
+        children=[header, description, row1, row2, store1, store2],
+        className="twelve columns",
     )
     return layout
 
 
-def build_scatter_figure():
+@app.callback(
+    Output("current-cluster", "data"), Input("scatter-plot", "clickData"),
+)
+def update_current_cluster(hoverData):
+    if hoverData is None:
+        return TOTAL_NUM_CLUSTERS
+    else:
+        current_cluster = hoverData["points"][0]["customdata"]
+        return current_cluster
+
+
+@app.callback(Output("cluster-label", "children"), Input("current-cluster", "data"))
+def update_cluster_label(current_cluster):
+    return "Cluster #: {}".format(current_cluster)
+
+
+@app.callback(
+    Output("current-data", "data"), Input("current-cluster", "data"),
+)
+def update_data(current_cluster):
+    if current_cluster == TOTAL_NUM_CLUSTERS:
+        ix = DATA["cluster"] < current_cluster
+    else:
+        ix = DATA["cluster"] == current_cluster
+    return ix.to_json()
+
+
+@app.callback(
+    Output("keywords", "children"), Input("current-data", "data"),
+)
+def update_keywords(current_data):
+    X = DATA.loc[pd.read_json(current_data, typ="series")]
+    if TOTAL_NUM_CLUSTERS in X["cluster"]:
+        new_keywords = "Click on a data point to see the keywords"
+    else:
+        new_keywords = ", ".join(X["labels"].explode().unique())
+    return new_keywords
+
+
+@app.callback(
+    Output("scatter-plot", "figure"), Input("current-data", "data"),
+)
+def update_scatter_plot(current_data):
+    ix = pd.read_json(current_data, typ="series")
+
     fig = go.Figure()
+    scatter = go.Scatter(
+        x=DATA["tSNE_X"],
+        y=DATA["tSNE_Y"],
+        customdata=DATA["cluster"],
+        mode="markers",
+        marker={
+            "size": 10,
+            "color": DATA["cluster"],
+            "cmin": 0,
+            "cmax": TOTAL_NUM_CLUSTERS - 1,
+            "showscale": False,
+        },
+        selectedpoints=ix[ix].index.values,
+    )
+
+    fig.add_traces(scatter)
     fig.update_layout(
         xaxis={"title": None, "range": [-60, 60]},
         yaxis={"title": None, "range": [-60, 60]},
         height=850,
         width=1200,
         showlegend=False,
-        margin=go.layout.Margin(l=0, r=0, b=0, t=0,),
+        margin=go.layout.Margin(l=0, r=0, b=0, t=0),
     )
     return fig
-
-
-def plot_scatter(X, marker_kwargs):
-    if "color" not in marker_kwargs.keys():
-        marker_kwargs["color"] = X["cluster"]
-    marker_kwargs["showscale"] = False
-    marker_kwargs["cmax"] = TOTAL_NUM_CLUSTERS - 1
-    marker_kwargs["cmin"] = 0
-
-    scatter = go.Scatter(
-        x=X["tSNE_X"],
-        y=X["tSNE_Y"],
-        mode="markers",
-        marker=marker_kwargs,
-        customdata=X["cluster"],
-    )
-    return scatter
-
-
-@app.callback(
-    Output("slider-label", "children"),
-    Output("current-cluster", "data"),
-    Input("scatter-plot", "clickData"),
-)
-def update_cluster_number(clickData):
-    if clickData is None:
-        return TOTAL_NUM_CLUSTERS
-    cluster_number = clickData["points"][0]["customdata"]
-    return ["Cluster #: ", cluster_number], cluster_number
-
-
-@app.callback(
-    Output("keywords", "children"), Input("current-cluster", "data"),
-)
-def update_keywords(cluster_number):
-    ix = DATA["cluster"] == cluster_number
-    new_keys = DATA.loc[ix, "labels"].explode().unique()
-    return [html.Li(x) for x in new_keys]
-
-
-@app.callback(
-    Output("scatter-plot", "figure"), Input("current-cluster", "data"),
-)
-def update_scatter(cluster_number):
-    scatter_plot = build_scatter_figure()
-
-    ix = DATA["cluster"] == cluster_number
-    df_cluster = DATA.loc[ix]
-    df_not_cluster = DATA.loc[~ix]
-
-    if cluster_number == TOTAL_NUM_CLUSTERS:
-        scatter_plot.add_traces(
-            plot_scatter(DATA, {"size": 10, "colorscale": "Spectral"})
-        )
-    else:
-        scatter_plot.add_traces(
-            plot_scatter(df_not_cluster, {"size": 6, "color": "dimgray",},)
-        )
-        scatter_plot.add_traces(
-            plot_scatter(df_cluster, {"size": 10, "colorscale": "Spectral",},)
-        )
-
-    return scatter_plot
 
 
 if __name__ == "__main__":
