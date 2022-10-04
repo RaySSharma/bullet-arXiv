@@ -12,14 +12,10 @@ import plotly.graph_objects as go
 from dash import Dash
 from dash.dependencies import Input, Output
 
-from src import ROOT_DIR
-
 external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 app = Dash(__name__, external_stylesheets=external_stylesheets)
 
-DATA = pd.read_hdf(ROOT_DIR / "data/processed/data.hdf5", key="test").reset_index(
-    drop=True
-)
+DATA = pd.read_hdf("data/processed/data.hdf5", key="test").reset_index(drop=True)
 TOTAL_NUM_CLUSTERS = DATA["cluster"].max() + 1
 
 
@@ -224,7 +220,7 @@ def build_html(widgets):
         className="twelve columns",
     )
 
-    layout = html.Div(children=[row1, row2, store1, store2], style={"margins": "50px"})
+    layout = html.Div(children=[row1, row2, store1, store2], style={"padding": "20px"})
     return layout
 
 
@@ -323,5 +319,8 @@ widgets = build_widgets()
 hover_data = build_hover_data()
 app.layout = build_html(widgets)
 
+application = app.server
+app.title = "Bullet ArXiv"
+
 if __name__ == "__main__":
-    app.run_server(port=8889, debug=True, use_reloader=True)
+    application.run(port=8080, debug=True)
