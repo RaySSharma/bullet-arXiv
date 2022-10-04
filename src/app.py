@@ -1,3 +1,6 @@
+"""Generate a dashboard to show off bullet_arxiv results. Illustrates results from models applied to
+the test data including an interactive plot, listed keywords, methodology, and conclusions.
+"""
 import string
 import textwrap
 
@@ -79,8 +82,9 @@ def build_html(widgets):
             html.P(
                 children=[
                     """The rapidly growing number of research papers published every day makes it \
-                     difficult to keep track of which papers are even relevant. Using NLP and \
-                     clustering algorithms, I answer the following questions:""",
+                     difficult to keep track of which papers are even relevant. I scrape 19,177 \
+                     abstracts from peer-reviewed publications on the arXiv and use NLP techniques \
+                     to answer the following questions:""",
                     html.Ul(
                         [
                             html.Li(
@@ -100,31 +104,25 @@ def build_html(widgets):
     )
     results = html.Div(
         children=[
-            html.H5("Conclusions"),
+            html.H6("Conclusions"),
             html.P(
                 children=[
                     html.P(
                         "It is clear that paper abstracts contain \
-                         enough information to tightly cluster the papers! However, there are no \
-                         metrics that will tell me whether the keywords are entirely meaningful. \
-                         Fortunately, from my own knowledge of the domain, I can see the clusterer \
-                         does a reasonably good job of identifying sub-fields within astronomy. \
-                         For example, Cluster 5 lists `accretion`, `bubble`, `cluster`, `galaxy`, \
-                         `gas`, `heating`, and `radio` as keywords -- strong indicators that the \
-                         papers are discussing black hole-induced gas heating in galaxies and \
-                         galaxy clusters. That's a very real field of interest in studies of \
-                         how galaxies work!"
-                        ""
+                        enough information to tightly cluster the papers! However, there are no \
+                        metrics that will tell me whether the keywords are entirely meaningful. \
+                        Fortunately, from my own knowledge of the domain, I can see the clusterer \
+                        does a reasonably good job of identifying sub-fields within astronomy. \
+                        For example, Cluster 5 lists `accretion`, `bubble`, `cluster`, `galaxy`, \
+                        `gas`, `heating`, and `radio` as keywords -- strong indicators that the \
+                        papers are discussing black hole-induced gas heating in galaxies and \
+                        galaxy clusters! \
+                        "
                     ),
                     html.P(
                         "It is important to note that the methods used here are field-agnostic, \
                          meaning this package can be used to cluster and identify key-words from \
                          papers from any field."
-                    ),
-                    html.P(
-                        "Future work on bullet_arxiv should include an exploration of other \
-                        clustering algorithms, an application to a field of study I am not familiar\
-                         with, and a more in-depth sweep of the hyperparameter space."
                     ),
                 ]
             ),
@@ -133,7 +131,7 @@ def build_html(widgets):
     )
     methods = html.Div(
         children=[
-            html.H5("Methodology"),
+            html.H6("Methodology"),
             html.P(
                 children=[
                     "I follow a similar metholodogy to ",
@@ -158,7 +156,7 @@ def build_html(widgets):
                     html.Li(
                         """Vectorize text using a TF-IDF transformer, down-weighting tokens \
                             that appear frequently throughout the corpus. The output is a sparse \
-                            matrix. Bag-of-words is generated from the training data."""
+                            matrix. A bag-of-words is generated from the training data."""
                     ),
                     html.Li(
                         """Reduce the dimensionality of the sparse, vectorized text using \
@@ -187,7 +185,7 @@ def build_html(widgets):
     )
     contact = html.Div(
         children=[
-            html.H5("Contact"),
+            html.H6("Contact"),
             html.B("Primary author: "),
             "Ray Sharma",
             html.Br(),
@@ -221,7 +219,7 @@ def build_html(widgets):
                 ],
                 className="eight columns",
             ),
-            html.Div(children=[methods, results, contact]),
+            html.Div(children=[methods, results, contact], className="four columns"),
         ],
         className="twelve columns",
     )
@@ -327,4 +325,3 @@ app.layout = build_html(widgets)
 
 if __name__ == "__main__":
     app.run_server(port=8889, debug=True, use_reloader=True)
-
