@@ -6,7 +6,6 @@ import textwrap
 
 import dash_core_components as dcc
 import dash_html_components as html
-import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from dash import Dash
@@ -26,27 +25,25 @@ def build_hover_data():
         .str.replace(" +", " ", regex=True)
         .apply(lambda x: x.translate(str.maketrans("", "", string.punctuation)))
         .apply(lambda x: "<br>".join(textwrap.wrap(x, width=50)))
-    )
+    ).values
     authors = (
         DATA["authors"]
         .apply(lambda x: x[1:-1].split(", ")[0])
         .str.translate(str.maketrans("", "", string.punctuation))
         + " et al"
-    )
-    doi = DATA["doi"]
-    arxiv_id = DATA["id"]
-    arxiv_sections = DATA["categories"]
+    ).values
+    doi = DATA["doi"].values
+    arxiv_id = DATA["id"].values
+    arxiv_sections = DATA["categories"].values
     lda_labels = (
         DATA["labels"]
         .apply(", ".join)
         .apply(lambda x: "<br>".join(textwrap.wrap(x, width=50)))
-    )
-    cluster = DATA["cluster"]
-    return pd.DataFrame(
-        np.asarray(
-            [title, authors, doi, arxiv_id, arxiv_sections, lda_labels, cluster]
-        ).T
-    )
+    ).values
+    cluster = DATA["cluster"].values
+
+    data = [title, authors, doi, arxiv_id, arxiv_sections, lda_labels, cluster]
+    return list(map(list, zip(*data)))
 
 
 def build_widgets():
