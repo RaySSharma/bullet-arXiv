@@ -136,7 +136,8 @@ def construct_df(X, clustering_pipeline, tsne):
     df["tSNE_Y"] = X_tsne[:, 1]
     df["cluster"] = kmeans_labels
     df["processed_text"] = text
-    df["labels"] = [lda_labels[int(cluster)] for cluster in kmeans_labels]
+    df["authors"] = df["authors"].apply(lambda x: pd.eval(x, engine="python")).str[0]
+    df["labels"] = ", ".join([lda_labels[int(cluster)] for cluster in kmeans_labels])
     return df
 
 
