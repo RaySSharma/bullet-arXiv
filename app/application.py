@@ -14,7 +14,7 @@ from dash.dependencies import Input, Output
 external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 app = Dash(__name__, external_stylesheets=external_stylesheets)
 
-DATA = pd.read_hdf("data/processed/data.hdf5", key="test").reset_index(drop=True)
+DATA = pd.read_hdf("data.hdf5", key="test").reset_index(drop=True)
 TOTAL_NUM_CLUSTERS = DATA["cluster"].max() + 1
 
 
@@ -26,19 +26,12 @@ def build_hover_data():
         .apply(lambda x: x.translate(str.maketrans("", "", string.punctuation)))
         .apply(lambda x: "<br>".join(textwrap.wrap(x, width=50)))
     ).values
-    authors = (
-        DATA["authors"]
-        .apply(lambda x: x[1:-1].split(", ")[0])
-        .str.translate(str.maketrans("", "", string.punctuation))
-        + " et al"
-    ).values
+    authors = (DATA["authors"] + " et al").values
     doi = DATA["doi"].values
     arxiv_id = DATA["id"].values
     arxiv_sections = DATA["categories"].values
     lda_labels = (
-        DATA["labels"]
-        .apply(", ".join)
-        .apply(lambda x: "<br>".join(textwrap.wrap(x, width=50)))
+        DATA["labels"].apply(lambda x: "<br>".join(textwrap.wrap(x, width=50)))
     ).values
     cluster = DATA["cluster"].values
 
