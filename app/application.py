@@ -30,8 +30,11 @@ def build_hover_data():
     doi = DATA["doi"].values
     arxiv_id = DATA["id"].values
     arxiv_sections = DATA["categories"].values
+
     lda_labels = (
-        DATA["labels"].apply(lambda x: "<br>".join(textwrap.wrap(x, width=50)))
+        DATA["labels"]
+        .apply(", ".join)
+        .apply(lambda x: "<br>".join(textwrap.wrap(x, width=50)))
     ).values
     cluster = DATA["cluster"].values
 
@@ -313,4 +316,4 @@ application = app.server
 app.title = "Bullet ArXiv"
 
 if __name__ == "__main__":
-    application.run(port=8080, debug=True)
+    application.run(port=8080, host="0.0.0.0", debug=True)

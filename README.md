@@ -2,7 +2,9 @@
 
 bullet-arXiv is an NLP keyword generator for research papers. By analyzing paper abstracts, bullet-arXiv can cluster by topic and generate meaningful summary keywords.
 
-To see it in action, visit the [web app](http://bullet-env-2.eba-p3cickfb.us-west-2.elasticbeanstalk.com) where I apply bullet-arXiv to nearly 20,000 astronomy papers published on the arXiv between *2012-09-01* and *2022-09-01*. I used the excellent `arxivscraper` package found [here](https://github.com/Mahdisadjadi/arxivscraper).
+To see it in action, visit the [web app](http://bullet-env-2.eba-p3cickfb.us-west-2.elasticbeanstalk.com) where I apply bullet-arXiv to nearly 20,000 astronomy papers published on the arXiv between *2012-09-01* and *2022-09-01*. I used the excellent `arxivscraper` package found [here](https://github.com/Mahdisadjadi/arxivscraper). 
+
+You may also pull the latest Docker release, see below.
 
 ## About
 The goal of the project is to automatically generate meaningful keywords for research publications. Doing so allows for ease of finding publications relevant to you -- particularly important when an overwhelming number of papers are published each day. This project was inspired by [Eren et al (2020)](https://doi.org/10.1145/3395027.3419591), who use Latent Dirichlet Allocation on COVID-19 publications.
@@ -22,6 +24,15 @@ To install the package:
 ```
 $ pip install .
 ```
+
+If you want to simply run the webapp locally, you can pull the latest docker image:
+
+```
+$ docker pull rayssharma/bullet-arxiv:latest
+$ docker run -p 8080:80 rayssharma/bullet-arxiv:latest 
+```
+
+then navigate to `localhost:8080`.
 
 ## Methodology
 
