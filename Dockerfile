@@ -1,4 +1,4 @@
-FROM python:3.8
+FROM python:3.8.13
 
 WORKDIR /app
 
@@ -6,7 +6,10 @@ ENV PORT 80
 
 ADD app/application.py .
 ADD app/requirements.txt .
+ADD data/processed/data.hdf5 .
 
 RUN pip install -r requirements.txt
 
-CMD ["python", "./application.py"]
+COPY . ./
+
+CMD gunicorn -b 0.0.0.0:80 app.application:application
