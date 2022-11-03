@@ -2,7 +2,7 @@
 
 bullet-arXiv is an NLP keyword generator for research papers. By analyzing paper abstracts, bullet-arXiv can cluster by topic and generate meaningful summary keywords.
 
-To see it in action, visit the [web app](http://bullet-env-2.eba-p3cickfb.us-west-2.elasticbeanstalk.com) where I apply bullet-arXiv to nearly 20,000 astronomy papers published on the arXiv between *2012-09-01* and *2022-09-01*. I used the excellent `arxivscraper` package found [here](https://github.com/Mahdisadjadi/arxivscraper). 
+To see it in action, visit the [web app](https://bullet-arxiv.herokuapp.com) where I apply bullet-arXiv to nearly 20,000 astronomy papers published on the arXiv between *2012-09-01* and *2022-09-01*. I used the excellent `arxivscraper` package found [here](https://github.com/Mahdisadjadi/arxivscraper). 
 
 You may also pull the latest Docker release, see below.
 
