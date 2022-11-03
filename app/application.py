@@ -14,7 +14,7 @@ from dash.dependencies import Input, Output
 external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 app = Dash(__name__, external_stylesheets=external_stylesheets)
 
-DATA = pd.read_hdf("data.hdf5", key="test").reset_index(drop=True)
+DATA = pd.read_hdf("data/processed/data.hdf5", key="test").reset_index(drop=True)
 TOTAL_NUM_CLUSTERS = DATA["cluster"].max() + 1
 
 

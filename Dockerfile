@@ -6,7 +6,6 @@ ENV PORT 80
 
 ADD app/application.py .
 ADD app/requirements.txt .
-ADD data/processed/data.hdf5 .
 
 RUN pip install -r requirements.txt
 
